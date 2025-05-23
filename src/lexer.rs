@@ -24,10 +24,29 @@ impl<R: Read> Lexer<R> {
         while let Some(Ok(b)) = self.input.next() {
             match b {
                 b'r' => {
-                    if let Some(Ok(d)) = self.input.next() {
+                    let mut res = None;
+                    if let Some(Ok(d)) = self.input.peek() {
                         if d.is_ascii_digit() {
-                            return Token::Register(d - b'0');
+                            res = Some(Token::Register(d - b'0'));
+                            self.input.next();
                         }
+                    }
+
+                    if let Some(res) = res {
+                        return res;
+                    } else {
+                        let mut ident = String::new();
+                        ident.push(b as char);
+                        while let Some(Ok(nb)) = self.input.peek() {
+                            if nb.is_ascii_alphanumeric() || *nb == b'_' {
+                                ident.push(*nb as char);
+                                self.input.next();
+                            } else {
+                                break;
+                            }
+                        }
+
+                        return Token::Ident(ident);
                     }
                 }
                 b'a'..=b'z' | b'A'..=b'Z' => {
