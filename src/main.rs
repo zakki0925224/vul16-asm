@@ -56,3 +56,58 @@ fn test_parser() {
     let insts = parser.parse().unwrap();
     assert_eq!(insts[0].to_bytes(), vec![0x28, 0x00]);
 }
+
+#[test]
+fn test_parser_add() {
+    let text = "add r0, r1, r2";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    assert_eq!(insts[0].to_bytes(), vec![0x28, 0x00]);
+}
+
+#[test]
+fn test_parser_addi() {
+    let text = "addi r3, r4, 7";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    // opcode=1, rd=3, rs=4, imm=7 (imm: 0b00111)
+    assert_eq!(insts[0].to_bytes(), vec![0x87, 0x0b]);
+}
+
+#[test]
+fn test_parser_jmp() {
+    let text = "jmp r2, -8";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    // opcode=0x18, rd=2, offset=0xf8 (i8 -8 as u8)
+    assert_eq!(insts[0].to_bytes(), vec![0xf8, 0xc2]);
+}
+
+#[test]
+fn test_parser_beq() {
+    let text = "beq r1, r2, 5";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    // opcode=0x1a, rs1=1, rs2=2, offset=5 (offset: 0b00101)
+    assert_eq!(insts[0].to_bytes(), vec![0x45, 0xd1]);
+}
+
+#[test]
+fn test_parser_multiple() {
+    let text = "add r0, r1, r2\naddi r3, r4, 1";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    assert_eq!(insts.len(), 2);
+    assert_eq!(insts[0].to_bytes(), vec![0x28, 0x00]);
+    assert_eq!(insts[1].to_bytes(), vec![0x81, 0x0b]);
+}
+
+#[test]
+fn test_comment() {
+    let text = "add r0, r1, r2 ; this is a comment\naddi r3, r4, 1";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    assert_eq!(insts.len(), 2);
+    assert_eq!(insts[0].to_bytes(), vec![0x28, 0x00]);
+    assert_eq!(insts[1].to_bytes(), vec![0x81, 0x0b]);
+}

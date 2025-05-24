@@ -4,7 +4,9 @@ use std::io::{Bytes, Read};
 #[derive(Debug, PartialEq)]
 pub enum Token {
     Ident(String),
+    Comment(String),
     Register(u8),
+    Immediate(i8),
     Comma,
     Eos,
 }
@@ -62,6 +64,35 @@ impl<R: Read> Lexer<R> {
                     }
 
                     return Token::Ident(ident);
+                }
+                b';' => {
+                    let mut comment = String::new();
+                    comment.push(b as char);
+                    while let Some(Ok(nb)) = self.input.peek() {
+                        if *nb != b'\n' {
+                            comment.push(*nb as char);
+                            self.input.next();
+                        } else {
+                            break;
+                        }
+                    }
+                    return Token::Comment(comment);
+                }
+                b'0'..=b'9' | b'+' | b'-' => {
+                    let mut num = String::new();
+                    num.push(b as char);
+                    while let Some(Ok(nb)) = self.input.peek() {
+                        if nb.is_ascii_digit() {
+                            num.push(*nb as char);
+                            self.input.next();
+                        } else {
+                            break;
+                        }
+                    }
+
+                    if let Ok(value) = num.parse() {
+                        return Token::Immediate(value);
+                    }
                 }
                 b',' => return Token::Comma,
                 b' ' | b'\t' | b'\n' => continue,
