@@ -80,9 +80,40 @@ impl<R: Read> Lexer<R> {
                 }
                 b'0'..=b'9' | b'+' | b'-' => {
                     let mut num = String::new();
-                    num.push(b as char);
+                    let mut sign = 1;
+
+                    let mut first = b;
+                    if b == b'+' || b == b'-' {
+                        if b == b'-' {
+                            sign = -1;
+                        }
+
+                        if let Some(Ok(nb)) = self.input.peek() {
+                            first = *nb;
+                            self.input.next();
+                        } else {
+                            continue;
+                        }
+                    }
+
+                    num.push(first as char);
+
+                    if first == b'0' {
+                        if let Some(Ok(nb)) = self.input.peek() {
+                            match *nb {
+                                b'x' | b'X' | b'b' | b'B' | b'o' | b'O' => {
+                                    num.push(self.input.next().unwrap().unwrap() as char);
+                                }
+                                _ => (),
+                            }
+                        }
+                    }
+
                     while let Some(Ok(nb)) = self.input.peek() {
-                        if nb.is_ascii_digit() {
+                        if nb.is_ascii_digit()
+                            || (*nb >= b'a' && *nb <= b'f')
+                            || (*nb >= b'A' && *nb <= b'F')
+                        {
                             num.push(*nb as char);
                             self.input.next();
                         } else {
@@ -90,8 +121,18 @@ impl<R: Read> Lexer<R> {
                         }
                     }
 
-                    if let Ok(value) = num.parse() {
-                        return Token::Immediate(value);
+                    let value = if num.starts_with("0x") || num.starts_with("0X") {
+                        i8::from_str_radix(&num[2..], 16)
+                    } else if num.starts_with("0b") || num.starts_with("0B") {
+                        i8::from_str_radix(&num[2..], 2)
+                    } else if num.starts_with("0o") || num.starts_with("0O") {
+                        i8::from_str_radix(&num[2..], 8)
+                    } else {
+                        i8::from_str_radix(&num, 10)
+                    };
+
+                    if let Ok(value) = value {
+                        return Token::Immediate(sign * value);
                     }
                 }
                 b',' => return Token::Comma,

@@ -111,3 +111,49 @@ fn test_comment() {
     assert_eq!(insts[0].to_bytes(), vec![0x28, 0x00]);
     assert_eq!(insts[1].to_bytes(), vec![0x81, 0x0b]);
 }
+
+#[test]
+fn test_immediate() {
+    // decimal
+    let text = "addi r0, r0, 15";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    assert_eq!(insts[0].to_bytes(), vec![0xf, 0x08]);
+
+    let text = "addi r0, r0, 16";
+    let mut parser = Parser::load(text.as_bytes());
+    assert!(parser.parse().is_err());
+
+    let text = "addi r0, r0, -7";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    assert_eq!(insts[0].to_bytes(), vec![0x19, 0x08]);
+
+    // hex
+    let text = "addi r0, r0, 0xa";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    assert_eq!(insts[0].to_bytes(), vec![0xa, 0x08]);
+
+    let text = "addi r0, r0, -0xa";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    assert_eq!(insts[0].to_bytes(), vec![0x16, 0x08]);
+
+    // octal
+    let text = "addi r0, r0, 0o12";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    assert_eq!(insts[0].to_bytes(), vec![0xa, 0x08]);
+
+    // binary
+    let text = "addi r0, r0, 0b1010";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    assert_eq!(insts[0].to_bytes(), vec![0xa, 0x08]);
+
+    let text = "addi r0, r0, -0b1010";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    assert_eq!(insts[0].to_bytes(), vec![0x16, 0x08]);
+}
