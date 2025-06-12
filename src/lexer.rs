@@ -2,6 +2,12 @@ use core::iter::Peekable;
 use std::io::{Bytes, Read};
 
 #[derive(Debug, PartialEq)]
+pub struct TokenInfo {
+    pub token: Token,
+    pub line: usize,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum Token {
     Ident(String),
     Comment(String),
@@ -13,16 +19,18 @@ pub enum Token {
 
 pub struct Lexer<R: Read> {
     input: Peekable<Bytes<R>>,
+    line: usize,
 }
 
 impl<R: Read> Lexer<R> {
     pub fn new(input: R) -> Self {
         Self {
             input: input.bytes().peekable(),
+            line: 1,
         }
     }
 
-    pub fn next(&mut self) -> Token {
+    pub fn next(&mut self) -> TokenInfo {
         while let Some(Ok(b)) = self.input.next() {
             match b {
                 b'r' => {
@@ -35,7 +43,10 @@ impl<R: Read> Lexer<R> {
                     }
 
                     if let Some(res) = res {
-                        return res;
+                        return TokenInfo {
+                            token: res,
+                            line: self.line,
+                        };
                     } else {
                         let mut ident = String::new();
                         ident.push(b as char);
@@ -48,7 +59,10 @@ impl<R: Read> Lexer<R> {
                             }
                         }
 
-                        return Token::Ident(ident);
+                        return TokenInfo {
+                            token: Token::Ident(ident),
+                            line: self.line,
+                        };
                     }
                 }
                 b'a'..=b'z' | b'A'..=b'Z' => {
@@ -63,7 +77,10 @@ impl<R: Read> Lexer<R> {
                         }
                     }
 
-                    return Token::Ident(ident);
+                    return TokenInfo {
+                        token: Token::Ident(ident),
+                        line: self.line,
+                    };
                 }
                 b';' => {
                     let mut comment = String::new();
@@ -76,7 +93,10 @@ impl<R: Read> Lexer<R> {
                             break;
                         }
                     }
-                    return Token::Comment(comment);
+                    return TokenInfo {
+                        token: Token::Comment(comment),
+                        line: self.line,
+                    };
                 }
                 b'0'..=b'9' | b'+' | b'-' => {
                     let mut num = String::new();
@@ -132,15 +152,30 @@ impl<R: Read> Lexer<R> {
                     };
 
                     if let Ok(value) = value {
-                        return Token::Immediate(sign * value);
+                        return TokenInfo {
+                            token: Token::Immediate(sign * value),
+                            line: self.line,
+                        };
                     }
                 }
-                b',' => return Token::Comma,
-                b' ' | b'\t' | b'\n' => continue,
+                b',' => {
+                    return TokenInfo {
+                        token: Token::Comma,
+                        line: self.line,
+                    };
+                }
+                b' ' | b'\t' => continue,
+                b'\n' => {
+                    self.line += 1;
+                    continue;
+                }
                 _ => continue,
             }
         }
 
-        Token::Eos
+        TokenInfo {
+            token: Token::Eos,
+            line: self.line,
+        }
     }
 }

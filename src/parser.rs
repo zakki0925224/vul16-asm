@@ -17,28 +17,43 @@ impl<R: Read> Parser<R> {
 
     fn parse_register(&mut self) -> anyhow::Result<u8> {
         loop {
-            let token = self.lexer.next();
+            let token_info = self.lexer.next();
+            let token = token_info.token;
             match token {
                 Token::Register(reg) => return Ok(reg),
                 Token::Comma => continue,
-                _ => return Err(anyhow::anyhow!("Expected register, found {:?}", token)),
+                _ => {
+                    return Err(anyhow::anyhow!(
+                        "Expected register, found {:?} at line {}",
+                        token,
+                        token_info.line,
+                    ));
+                }
             }
         }
     }
 
     fn parse_immediate(&mut self) -> anyhow::Result<i8> {
         loop {
-            let token = self.lexer.next();
+            let token_info = self.lexer.next();
+            let token = token_info.token;
             match token {
                 Token::Immediate(imm) => return Ok(imm),
                 Token::Comma => continue,
-                _ => return Err(anyhow::anyhow!("Expected immediate, found {:?}", token)),
+                _ => {
+                    return Err(anyhow::anyhow!(
+                        "Expected immediate, found {:?} at line {}",
+                        token,
+                        token_info.line,
+                    ));
+                }
             }
         }
     }
 
     fn parse_mnemonic(&mut self) -> anyhow::Result<Option<Instruction>> {
-        let token = self.lexer.next();
+        let token_info = self.lexer.next();
+        let token = token_info.token;
         match token {
             Token::Ident(ident) => match &*ident {
                 isa::MNEMONIC_ADD => {
@@ -46,7 +61,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
-                    let format_r = FormatR::new(opcode, rd, rs1, rs2)?;
+                    let format_r = FormatR::new(opcode, rd, rs1, rs2).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatR instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Add(format_r)))
                 }
                 isa::MNEMONIC_ADDI => {
@@ -54,7 +75,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Addi(format_i)))
                 }
                 isa::MNEMONIC_SUB => {
@@ -62,7 +89,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
-                    let format_r = FormatR::new(opcode, rd, rs1, rs2)?;
+                    let format_r = FormatR::new(opcode, rd, rs1, rs2).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatR instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Sub(format_r)))
                 }
                 isa::MNEMONIC_AND => {
@@ -70,7 +103,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
-                    let format_r = FormatR::new(opcode, rd, rs1, rs2)?;
+                    let format_r = FormatR::new(opcode, rd, rs1, rs2).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatR instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::And(format_r)))
                 }
                 isa::MNEMONIC_ANDI => {
@@ -78,7 +117,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Andi(format_i)))
                 }
                 isa::MNEMONIC_OR => {
@@ -86,7 +131,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
-                    let format_r = FormatR::new(opcode, rd, rs1, rs2)?;
+                    let format_r = FormatR::new(opcode, rd, rs1, rs2).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatR instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Or(format_r)))
                 }
                 isa::MNEMONIC_ORI => {
@@ -94,7 +145,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Ori(format_i)))
                 }
                 isa::MNEMONIC_XOR => {
@@ -102,7 +159,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
-                    let format_r = FormatR::new(opcode, rd, rs1, rs2)?;
+                    let format_r = FormatR::new(opcode, rd, rs1, rs2).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatR instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Xor(format_r)))
                 }
                 isa::MNEMONIC_XORI => {
@@ -110,7 +173,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Xori(format_i)))
                 }
                 isa::MNEMONIC_SLL => {
@@ -118,7 +187,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
-                    let format_r = FormatR::new(opcode, rd, rs1, rs2)?;
+                    let format_r = FormatR::new(opcode, rd, rs1, rs2).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatR instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Sll(format_r)))
                 }
                 isa::MNEMONIC_SLLI => {
@@ -126,7 +201,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Slli(format_i)))
                 }
                 isa::MNEMONIC_SRL => {
@@ -134,7 +215,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
-                    let format_r = FormatR::new(opcode, rd, rs1, rs2)?;
+                    let format_r = FormatR::new(opcode, rd, rs1, rs2).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatR instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Srl(format_r)))
                 }
                 isa::MNEMONIC_SRLI => {
@@ -142,7 +229,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Srli(format_i)))
                 }
                 isa::MNEMONIC_SRA => {
@@ -150,7 +243,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
-                    let format_r = FormatR::new(opcode, rd, rs1, rs2)?;
+                    let format_r = FormatR::new(opcode, rd, rs1, rs2).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatR instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Sra(format_r)))
                 }
                 isa::MNEMONIC_SRAI => {
@@ -158,7 +257,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Srai(format_i)))
                 }
                 isa::MNEMONIC_SLT => {
@@ -166,7 +271,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
-                    let format_r = FormatR::new(opcode, rd, rs1, rs2)?;
+                    let format_r = FormatR::new(opcode, rd, rs1, rs2).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatR instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Slt(format_r)))
                 }
                 isa::MNEMONIC_SLTI => {
@@ -174,7 +285,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Slti(format_i)))
                 }
                 isa::MNEMONIC_SLTU => {
@@ -182,7 +299,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
-                    let format_r = FormatR::new(opcode, rd, rs1, rs2)?;
+                    let format_r = FormatR::new(opcode, rd, rs1, rs2).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatR instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Sltu(format_r)))
                 }
                 isa::MNEMONIC_SLTIU => {
@@ -190,7 +313,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Sltiu(format_i)))
                 }
                 isa::MNEMONIC_LB => {
@@ -198,7 +327,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Lb(format_i)))
                 }
                 isa::MNEMONIC_LBU => {
@@ -206,7 +341,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Lbu(format_i)))
                 }
                 isa::MNEMONIC_LH => {
@@ -214,7 +355,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Lh(format_i)))
                 }
                 isa::MNEMONIC_SB => {
@@ -222,7 +369,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Sb(format_i)))
                 }
                 isa::MNEMONIC_SH => {
@@ -230,14 +383,26 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Sh(format_i)))
                 }
                 isa::MNEMONIC_JMP => {
                     let opcode = isa::OPCODE_JMP;
                     let rd = self.parse_register()?;
                     let offset = self.parse_immediate()?;
-                    let format_j = FormatJ::new(opcode, rd, offset)?;
+                    let format_j = FormatJ::new(opcode, rd, offset).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatJ instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Jmp(format_j)))
                 }
                 isa::MNEMONIC_JMPR => {
@@ -245,7 +410,13 @@ impl<R: Read> Parser<R> {
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm)?;
+                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatI instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Jmpr(format_i)))
                 }
                 isa::MNEMONIC_BEQ => {
@@ -253,7 +424,13 @@ impl<R: Read> Parser<R> {
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
                     let offset = self.parse_immediate()?;
-                    let format_b = FormatB::new(opcode, rs1, rs2, offset)?;
+                    let format_b = FormatB::new(opcode, rs1, rs2, offset).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatB instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Beq(format_b)))
                 }
                 isa::MNEMONIC_BNE => {
@@ -261,7 +438,13 @@ impl<R: Read> Parser<R> {
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
                     let offset = self.parse_immediate()?;
-                    let format_b = FormatB::new(opcode, rs1, rs2, offset)?;
+                    let format_b = FormatB::new(opcode, rs1, rs2, offset).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatB instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Bne(format_b)))
                 }
                 isa::MNEMONIC_BLT => {
@@ -269,7 +452,13 @@ impl<R: Read> Parser<R> {
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
                     let offset = self.parse_immediate()?;
-                    let format_b = FormatB::new(opcode, rs1, rs2, offset)?;
+                    let format_b = FormatB::new(opcode, rs1, rs2, offset).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatB instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Blt(format_b)))
                 }
                 isa::MNEMONIC_BGE => {
@@ -277,7 +466,13 @@ impl<R: Read> Parser<R> {
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
                     let offset = self.parse_immediate()?;
-                    let format_b = FormatB::new(opcode, rs1, rs2, offset)?;
+                    let format_b = FormatB::new(opcode, rs1, rs2, offset).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatB instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Bge(format_b)))
                 }
                 isa::MNEMONIC_BLTU => {
@@ -285,7 +480,13 @@ impl<R: Read> Parser<R> {
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
                     let offset = self.parse_immediate()?;
-                    let format_b = FormatB::new(opcode, rs1, rs2, offset)?;
+                    let format_b = FormatB::new(opcode, rs1, rs2, offset).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatB instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Bltu(format_b)))
                 }
                 isa::MNEMONIC_BGEU => {
@@ -293,14 +494,28 @@ impl<R: Read> Parser<R> {
                     let rs1 = self.parse_register()?;
                     let rs2 = self.parse_register()?;
                     let offset = self.parse_immediate()?;
-                    let format_b = FormatB::new(opcode, rs1, rs2, offset)?;
+                    let format_b = FormatB::new(opcode, rs1, rs2, offset).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Error parsing FormatB instruction: {:?} at line {}",
+                            e,
+                            token_info.line,
+                        )
+                    })?;
                     Ok(Some(Instruction::Bgeu(format_b)))
                 }
-                _ => Err(anyhow::anyhow!("Unknown mnemonic: {}", ident)),
+                _ => Err(anyhow::anyhow!(
+                    "Unknown mnemonic: {} at line {}",
+                    ident,
+                    token_info.line,
+                )),
             },
             Token::Comment(_) => self.parse_mnemonic(), // skip
             Token::Eos => Ok(None),                     // end
-            _ => Err(anyhow::anyhow!("Expected mnemonic, found {:?}", token)),
+            _ => Err(anyhow::anyhow!(
+                "Expected mnemonic, found {:?}: at line {}",
+                token,
+                token_info.line,
+            )),
         }
     }
 
