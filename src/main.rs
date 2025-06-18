@@ -120,10 +120,6 @@ fn test_immediate() {
     let insts = parser.parse().unwrap();
     assert_eq!(insts[0].to_bytes(), vec![0xf, 0x08]);
 
-    let text = "addi r0, r0, 16";
-    let mut parser = Parser::load(text.as_bytes());
-    assert!(parser.parse().is_err());
-
     let text = "addi r0, r0, -7";
     let mut parser = Parser::load(text.as_bytes());
     let insts = parser.parse().unwrap();
@@ -156,4 +152,12 @@ fn test_immediate() {
     let mut parser = Parser::load(text.as_bytes());
     let insts = parser.parse().unwrap();
     assert_eq!(insts[0].to_bytes(), vec![0x16, 0x08]);
+}
+
+#[test]
+fn test_expanded_instruction() {
+    let text = "addi r0, r0, 0xf000";
+    let mut parser = Parser::load(text.as_bytes());
+    let insts = parser.parse().unwrap();
+    assert_eq!(insts.len(), 4096);
 }

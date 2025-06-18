@@ -33,7 +33,7 @@ impl<R: Read> Parser<R> {
         }
     }
 
-    fn parse_immediate(&mut self) -> anyhow::Result<i8> {
+    fn parse_immediate(&mut self) -> anyhow::Result<isize> {
         loop {
             let token_info = self.lexer.next();
             let token = token_info.token;
@@ -51,7 +51,53 @@ impl<R: Read> Parser<R> {
         }
     }
 
-    fn parse_mnemonic(&mut self) -> anyhow::Result<Option<Instruction>> {
+    fn expanded_format_i(
+        &self,
+        line: usize,
+        opcode: u8,
+        rd: u8,
+        rs: u8,
+        imm: isize,
+    ) -> anyhow::Result<Vec<Instruction>> {
+        let mut imm = imm;
+        let mut insts = Vec::new();
+        let mut tmp_rs = rs;
+        let mut first = true;
+
+        while imm > 15 || imm < -16 {
+            let part = if imm > 15 { 15 } else { -16 };
+            let format_i = FormatI::new(opcode, rd, tmp_rs, part).map_err(|e| {
+                anyhow::anyhow!(
+                    "Error parsing FormatI instruction: {:?} at line {}",
+                    e,
+                    line,
+                )
+            })?;
+
+            insts.push(Instruction::Addi(format_i));
+            imm -= part;
+
+            if first {
+                tmp_rs = rd;
+                first = false;
+            }
+        }
+
+        if imm != 0 {
+            let format_i = FormatI::new(opcode, rd, tmp_rs, imm).map_err(|e| {
+                anyhow::anyhow!(
+                    "Error parsing FormatI instruction: {:?} at line {}",
+                    e,
+                    line,
+                )
+            })?;
+            insts.push(Instruction::Addi(format_i));
+        }
+
+        Ok(insts)
+    }
+
+    fn parse_mnemonic(&mut self) -> anyhow::Result<Vec<Instruction>> {
         let token_info = self.lexer.next();
         let token = token_info.token;
         match token {
@@ -68,21 +114,26 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Add(format_r)))
+                    Ok(vec![Instruction::Add(format_r)])
                 }
                 isa::MNEMONIC_ADDI => {
                     let opcode = isa::OPCODE_ADDI;
                     let rd = self.parse_register()?;
                     let rs = self.parse_register()?;
                     let imm = self.parse_immediate()?;
-                    let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
-                        anyhow::anyhow!(
-                            "Error parsing FormatI instruction: {:?} at line {}",
-                            e,
-                            token_info.line,
-                        )
-                    })?;
-                    Ok(Some(Instruction::Addi(format_i)))
+
+                    if imm > 15 || imm < -16 {
+                        self.expanded_format_i(token_info.line, opcode, rd, rs, imm)
+                    } else {
+                        let format_i = FormatI::new(opcode, rd, rs, imm).map_err(|e| {
+                            anyhow::anyhow!(
+                                "Error parsing FormatI instruction: {:?} at line {}",
+                                e,
+                                token_info.line,
+                            )
+                        })?;
+                        Ok(vec![Instruction::Addi(format_i)])
+                    }
                 }
                 isa::MNEMONIC_SUB => {
                     let opcode = isa::OPCODE_SUB;
@@ -96,7 +147,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Sub(format_r)))
+                    Ok(vec![Instruction::Sub(format_r)])
                 }
                 isa::MNEMONIC_AND => {
                     let opcode = isa::OPCODE_AND;
@@ -110,7 +161,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::And(format_r)))
+                    Ok(vec![Instruction::And(format_r)])
                 }
                 isa::MNEMONIC_ANDI => {
                     let opcode = isa::OPCODE_ANDI;
@@ -124,7 +175,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Andi(format_i)))
+                    Ok(vec![Instruction::Andi(format_i)])
                 }
                 isa::MNEMONIC_OR => {
                     let opcode = isa::OPCODE_OR;
@@ -138,7 +189,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Or(format_r)))
+                    Ok(vec![Instruction::Or(format_r)])
                 }
                 isa::MNEMONIC_ORI => {
                     let opcode = isa::OPCODE_ORI;
@@ -152,7 +203,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Ori(format_i)))
+                    Ok(vec![Instruction::Ori(format_i)])
                 }
                 isa::MNEMONIC_XOR => {
                     let opcode = isa::OPCODE_XOR;
@@ -166,7 +217,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Xor(format_r)))
+                    Ok(vec![Instruction::Xor(format_r)])
                 }
                 isa::MNEMONIC_XORI => {
                     let opcode = isa::OPCODE_XORI;
@@ -180,7 +231,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Xori(format_i)))
+                    Ok(vec![Instruction::Xori(format_i)])
                 }
                 isa::MNEMONIC_SLL => {
                     let opcode = isa::OPCODE_SLL;
@@ -194,7 +245,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Sll(format_r)))
+                    Ok(vec![Instruction::Sll(format_r)])
                 }
                 isa::MNEMONIC_SLLI => {
                     let opcode = isa::OPCODE_SLLI;
@@ -208,7 +259,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Slli(format_i)))
+                    Ok(vec![Instruction::Slli(format_i)])
                 }
                 isa::MNEMONIC_SRL => {
                     let opcode = isa::OPCODE_SRL;
@@ -222,7 +273,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Srl(format_r)))
+                    Ok(vec![Instruction::Srl(format_r)])
                 }
                 isa::MNEMONIC_SRLI => {
                     let opcode = isa::OPCODE_SRLI;
@@ -236,7 +287,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Srli(format_i)))
+                    Ok(vec![Instruction::Srli(format_i)])
                 }
                 isa::MNEMONIC_SRA => {
                     let opcode = isa::OPCODE_SRA;
@@ -250,7 +301,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Sra(format_r)))
+                    Ok(vec![Instruction::Sra(format_r)])
                 }
                 isa::MNEMONIC_SRAI => {
                     let opcode = isa::OPCODE_SRAI;
@@ -264,7 +315,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Srai(format_i)))
+                    Ok(vec![Instruction::Srai(format_i)])
                 }
                 isa::MNEMONIC_SLT => {
                     let opcode = isa::OPCODE_SLT;
@@ -278,7 +329,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Slt(format_r)))
+                    Ok(vec![Instruction::Slt(format_r)])
                 }
                 isa::MNEMONIC_SLTI => {
                     let opcode = isa::OPCODE_SLTI;
@@ -292,7 +343,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Slti(format_i)))
+                    Ok(vec![Instruction::Slti(format_i)])
                 }
                 isa::MNEMONIC_SLTU => {
                     let opcode = isa::OPCODE_SLTU;
@@ -306,7 +357,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Sltu(format_r)))
+                    Ok(vec![Instruction::Sltu(format_r)])
                 }
                 isa::MNEMONIC_SLTIU => {
                     let opcode = isa::OPCODE_SLTIU;
@@ -320,7 +371,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Sltiu(format_i)))
+                    Ok(vec![Instruction::Sltiu(format_i)])
                 }
                 isa::MNEMONIC_LB => {
                     let opcode = isa::OPCODE_LB;
@@ -334,7 +385,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Lb(format_i)))
+                    Ok(vec![Instruction::Lb(format_i)])
                 }
                 isa::MNEMONIC_LBU => {
                     let opcode = isa::OPCODE_LBU;
@@ -348,7 +399,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Lbu(format_i)))
+                    Ok(vec![Instruction::Lbu(format_i)])
                 }
                 isa::MNEMONIC_LH => {
                     let opcode = isa::OPCODE_LH;
@@ -362,7 +413,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Lh(format_i)))
+                    Ok(vec![Instruction::Lh(format_i)])
                 }
                 isa::MNEMONIC_SB => {
                     let opcode = isa::OPCODE_SB;
@@ -376,7 +427,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Sb(format_i)))
+                    Ok(vec![Instruction::Sb(format_i)])
                 }
                 isa::MNEMONIC_SH => {
                     let opcode = isa::OPCODE_SH;
@@ -390,7 +441,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Sh(format_i)))
+                    Ok(vec![Instruction::Sh(format_i)])
                 }
                 isa::MNEMONIC_JMP => {
                     let opcode = isa::OPCODE_JMP;
@@ -403,7 +454,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Jmp(format_j)))
+                    Ok(vec![Instruction::Jmp(format_j)])
                 }
                 isa::MNEMONIC_JMPR => {
                     let opcode = isa::OPCODE_JMPR;
@@ -417,7 +468,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Jmpr(format_i)))
+                    Ok(vec![Instruction::Jmpr(format_i)])
                 }
                 isa::MNEMONIC_BEQ => {
                     let opcode = isa::OPCODE_BEQ;
@@ -431,7 +482,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Beq(format_b)))
+                    Ok(vec![Instruction::Beq(format_b)])
                 }
                 isa::MNEMONIC_BNE => {
                     let opcode = isa::OPCODE_BNE;
@@ -445,7 +496,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Bne(format_b)))
+                    Ok(vec![Instruction::Bne(format_b)])
                 }
                 isa::MNEMONIC_BLT => {
                     let opcode = isa::OPCODE_BLT;
@@ -459,7 +510,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Blt(format_b)))
+                    Ok(vec![Instruction::Blt(format_b)])
                 }
                 isa::MNEMONIC_BGE => {
                     let opcode = isa::OPCODE_BGE;
@@ -473,7 +524,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Bge(format_b)))
+                    Ok(vec![Instruction::Bge(format_b)])
                 }
                 isa::MNEMONIC_BLTU => {
                     let opcode = isa::OPCODE_BLTU;
@@ -487,7 +538,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Bltu(format_b)))
+                    Ok(vec![Instruction::Bltu(format_b)])
                 }
                 isa::MNEMONIC_BGEU => {
                     let opcode = isa::OPCODE_BGEU;
@@ -501,7 +552,7 @@ impl<R: Read> Parser<R> {
                             token_info.line,
                         )
                     })?;
-                    Ok(Some(Instruction::Bgeu(format_b)))
+                    Ok(vec![Instruction::Bgeu(format_b)])
                 }
                 _ => Err(anyhow::anyhow!(
                     "Unknown mnemonic: {} at line {}",
@@ -510,7 +561,7 @@ impl<R: Read> Parser<R> {
                 )),
             },
             Token::Comment(_) => self.parse_mnemonic(), // skip
-            Token::Eos => Ok(None),                     // end
+            Token::Eos => Ok(vec![]),                   // end
             _ => Err(anyhow::anyhow!(
                 "Expected mnemonic, found {:?}: at line {}",
                 token,
@@ -521,8 +572,13 @@ impl<R: Read> Parser<R> {
 
     pub fn parse(&mut self) -> anyhow::Result<Vec<Instruction>> {
         let mut insts = Vec::new();
-        while let Some(inst) = self.parse_mnemonic()? {
-            insts.push(inst);
+        loop {
+            let parsed_insts = self.parse_mnemonic()?;
+            if parsed_insts.is_empty() {
+                break;
+            }
+
+            insts.extend(parsed_insts);
         }
         Ok(insts)
     }

@@ -12,7 +12,7 @@ pub enum Token {
     Ident(String),
     Comment(String),
     Register(u8),
-    Immediate(i8),
+    Immediate(isize),
     Comma,
     Eos,
 }
@@ -142,13 +142,13 @@ impl<R: Read> Lexer<R> {
                     }
 
                     let value = if num.starts_with("0x") || num.starts_with("0X") {
-                        i8::from_str_radix(&num[2..], 16)
+                        isize::from_str_radix(&num[2..], 16)
                     } else if num.starts_with("0b") || num.starts_with("0B") {
-                        i8::from_str_radix(&num[2..], 2)
+                        isize::from_str_radix(&num[2..], 2)
                     } else if num.starts_with("0o") || num.starts_with("0O") {
-                        i8::from_str_radix(&num[2..], 8)
+                        isize::from_str_radix(&num[2..], 8)
                     } else {
-                        i8::from_str_radix(&num, 10)
+                        isize::from_str_radix(&num, 10)
                     };
 
                     if let Ok(value) = value {

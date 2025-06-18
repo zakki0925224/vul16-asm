@@ -46,7 +46,7 @@ bitfield! {
 }
 
 impl FormatI {
-    pub fn new(opcode: u8, rd: u8, rs: u8, imm: i8) -> anyhow::Result<Self> {
+    pub fn new(opcode: u8, rd: u8, rs: u8, imm: isize) -> anyhow::Result<Self> {
         if rd > 7 {
             return Err(anyhow::anyhow!("rd must be between 0 and 7"));
         }
@@ -78,7 +78,7 @@ bitfield! {
 }
 
 impl FormatJ {
-    pub fn new(opcode: u8, rd: u8, offset: i8) -> anyhow::Result<Self> {
+    pub fn new(opcode: u8, rd: u8, offset: isize) -> anyhow::Result<Self> {
         if rd > 7 {
             return Err(anyhow::anyhow!("rd must be between 0 and 7"));
         }
@@ -102,7 +102,7 @@ bitfield! {
 }
 
 impl FormatB {
-    pub fn new(opcode: u8, rs1: u8, rs2: u8, offset: i8) -> anyhow::Result<Self> {
+    pub fn new(opcode: u8, rs1: u8, rs2: u8, offset: isize) -> anyhow::Result<Self> {
         if rs1 > 7 {
             return Err(anyhow::anyhow!("rs1 must be between 0 and 7"));
         }
