@@ -1,8 +1,8 @@
 use bitfield::bitfield;
 
 bitfield! {
+    #[derive(Debug, Clone)]
     pub struct FormatR(u16);
-    impl Debug;
 
     u8, reserved, set_reserved: 1, 0;
     u8, rs2, set_rs2: 4, 2;
@@ -36,8 +36,8 @@ impl FormatR {
 }
 
 bitfield! {
+    #[derive(Debug, Clone)]
     pub struct FormatI(u16);
-    impl Debug;
 
     u8, imm, set_imm: 4, 0;
     u8, rs, set_rs: 7, 5;
@@ -69,8 +69,8 @@ impl FormatI {
 }
 
 bitfield! {
+    #[derive(Debug, Clone)]
     pub struct FormatJ(u16);
-    impl Debug;
 
     u8, offset, set_offset: 7, 0;
     u8, rd, set_rd: 10, 8;
@@ -92,8 +92,8 @@ impl FormatJ {
 }
 
 bitfield! {
+    #[derive(Debug, Clone)]
     pub struct FormatB(u16);
-    impl Debug;
 
     u8, offset, set_offset: 4, 0;
     u8, rs2, set_rs2: 7, 5;
@@ -124,7 +124,7 @@ impl FormatB {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[repr(u8)]
 pub enum Instruction {
     Add(FormatR),
@@ -265,3 +265,49 @@ pub const MNEMONIC_BLT: &str = "blt";
 pub const MNEMONIC_BGE: &str = "bge";
 pub const MNEMONIC_BLTU: &str = "bltu";
 pub const MNEMONIC_BGEU: &str = "bgeu";
+
+const RESERVED_WORDS: &[&str] = &[
+    MNEMONIC_ADD,
+    MNEMONIC_ADDI,
+    MNEMONIC_SUB,
+    MNEMONIC_AND,
+    MNEMONIC_ANDI,
+    MNEMONIC_OR,
+    MNEMONIC_ORI,
+    MNEMONIC_XOR,
+    MNEMONIC_XORI,
+    MNEMONIC_SLL,
+    MNEMONIC_SLLI,
+    MNEMONIC_SRL,
+    MNEMONIC_SRLI,
+    MNEMONIC_SRA,
+    MNEMONIC_SRAI,
+    MNEMONIC_SLT,
+    MNEMONIC_SLTI,
+    MNEMONIC_SLTU,
+    MNEMONIC_SLTIU,
+    MNEMONIC_LB,
+    MNEMONIC_LBU,
+    MNEMONIC_LH,
+    MNEMONIC_SB,
+    MNEMONIC_SH,
+    MNEMONIC_JMP,
+    MNEMONIC_JMPR,
+    MNEMONIC_BEQ,
+    MNEMONIC_BNE,
+    MNEMONIC_BLT,
+    MNEMONIC_BGE,
+    MNEMONIC_BLTU,
+    MNEMONIC_BGEU,
+];
+
+pub fn is_reserved_word(ident: &str) -> bool {
+    let is_start_with_num = ident.starts_with(|c: char| c.is_numeric());
+    let is_start_with_symbol = ident.starts_with(|c: char| c.is_ascii_punctuation());
+    let is_register = ident.len() == 2
+        && (ident.starts_with('r') || ident.starts_with('R'))
+        && ident.chars().nth(1).unwrap().is_ascii_digit();
+    let is_reserved_word = RESERVED_WORDS.contains(&ident);
+
+    is_start_with_num || is_start_with_symbol || is_register || is_reserved_word
+}

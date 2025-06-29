@@ -1,15 +1,18 @@
+use crate::isa;
 use core::iter::Peekable;
 use std::io::{Bytes, Read};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TokenInfo {
     pub token: Token,
     pub line: usize,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Ident(String),
+    Label(String),
+    TargetLabel(String),
     Comment(String),
     Register(u8),
     Immediate(isize),
@@ -33,39 +36,7 @@ impl<R: Read> Lexer<R> {
     pub fn next(&mut self) -> TokenInfo {
         while let Some(Ok(b)) = self.input.next() {
             match b {
-                b'r' => {
-                    let mut res = None;
-                    if let Some(Ok(d)) = self.input.peek() {
-                        if d.is_ascii_digit() {
-                            res = Some(Token::Register(d - b'0'));
-                            self.input.next();
-                        }
-                    }
-
-                    if let Some(res) = res {
-                        return TokenInfo {
-                            token: res,
-                            line: self.line,
-                        };
-                    } else {
-                        let mut ident = String::new();
-                        ident.push(b as char);
-                        while let Some(Ok(nb)) = self.input.peek() {
-                            if nb.is_ascii_alphanumeric() || *nb == b'_' {
-                                ident.push(*nb as char);
-                                self.input.next();
-                            } else {
-                                break;
-                            }
-                        }
-
-                        return TokenInfo {
-                            token: Token::Ident(ident),
-                            line: self.line,
-                        };
-                    }
-                }
-                b'a'..=b'z' | b'A'..=b'Z' => {
+                b'a'..=b'z' | b'A'..=b'Z' | b'#' => {
                     let mut ident = String::new();
                     ident.push(b as char);
                     while let Some(Ok(nb)) = self.input.peek() {
@@ -77,6 +48,42 @@ impl<R: Read> Lexer<R> {
                         }
                     }
 
+                    // register
+                    // start with 'r'/'R' and followed by a digit
+                    if ident.len() == 2
+                        && (ident.starts_with('r') || ident.starts_with('R'))
+                        && ident.chars().nth(1).unwrap().is_ascii_digit()
+                    {
+                        let reg_num = ident.chars().nth(1).unwrap() as u8 - b'0';
+                        return TokenInfo {
+                            token: Token::Register(reg_num),
+                            line: self.line,
+                        };
+                    }
+
+                    // label
+                    if let Some(Ok(nb)) = self.input.peek() {
+                        if *nb == b':' && !isa::is_reserved_word(&ident) {
+                            self.input.next();
+                            return TokenInfo {
+                                token: Token::Label(ident),
+                                line: self.line,
+                            };
+                        }
+                    }
+
+                    // target label
+                    if ident.len() > 1
+                        && ident.starts_with('#')
+                        && !isa::is_reserved_word(&ident[1..])
+                    {
+                        return TokenInfo {
+                            token: Token::TargetLabel(ident[1..].to_string()),
+                            line: self.line,
+                        };
+                    }
+
+                    // ident
                     return TokenInfo {
                         token: Token::Ident(ident),
                         line: self.line,
