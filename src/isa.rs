@@ -159,6 +159,9 @@ pub enum Instruction {
     Bge(FormatB),
     Bltu(FormatB),
     Bgeu(FormatB),
+
+    // virtual instructions
+    J(String), // target label
 }
 
 impl Instruction {
@@ -196,6 +199,7 @@ impl Instruction {
             Instruction::Bge(format_b) => format_b.0.to_le_bytes().to_vec(),
             Instruction::Bltu(format_b) => format_b.0.to_le_bytes().to_vec(),
             Instruction::Bgeu(format_b) => format_b.0.to_le_bytes().to_vec(),
+            Instruction::J(_) => Vec::new(),
         }
     }
 }
@@ -266,6 +270,9 @@ pub const MNEMONIC_BGE: &str = "bge";
 pub const MNEMONIC_BLTU: &str = "bltu";
 pub const MNEMONIC_BGEU: &str = "bgeu";
 
+// virtual instructions
+pub const MNEMONIC_VIRT_J: &str = "j";
+
 const RESERVED_WORDS: &[&str] = &[
     MNEMONIC_ADD,
     MNEMONIC_ADDI,
@@ -299,6 +306,7 @@ const RESERVED_WORDS: &[&str] = &[
     MNEMONIC_BGE,
     MNEMONIC_BLTU,
     MNEMONIC_BGEU,
+    MNEMONIC_VIRT_J,
 ];
 
 pub fn is_reserved_word(ident: &str) -> bool {

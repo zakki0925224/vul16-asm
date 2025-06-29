@@ -5,6 +5,8 @@ use crate::{
 use core::slice::Iter;
 use std::{collections::HashMap, io::Read};
 
+const LABEL_ROOT: &str = "<ROOT>";
+
 pub struct Parser<R: Read> {
     lexer: Lexer<R>,
     token_map: HashMap<String, Vec<TokenInfo>>,
@@ -55,6 +57,26 @@ impl<R: Read> Parser<R> {
         }
 
         Err(anyhow::anyhow!("Expected immediate, but found EOS"))
+    }
+
+    fn parse_target_label<'a>(
+        &self,
+        token_infos_iter: &mut Iter<'a, TokenInfo>,
+    ) -> anyhow::Result<String> {
+        while let Some(info) = token_infos_iter.next() {
+            match &info.token {
+                Token::TargetLabel(label) => return Ok(label.clone()),
+                _ => {
+                    return Err(anyhow::anyhow!(
+                        "Expected target label, but found {:?} at line {}",
+                        info.token,
+                        info.line
+                    ));
+                }
+            }
+        }
+
+        Err(anyhow::anyhow!("Expected target label, but found EOS"))
     }
 
     fn format_r_inst<'a>(
@@ -455,6 +477,10 @@ impl<R: Read> Parser<R> {
                             info.line,
                         )?));
                     }
+                    isa::MNEMONIC_VIRT_J => {
+                        let target_label = self.parse_target_label(token_infos_iter)?;
+                        return Ok(Some(Instruction::J(target_label)));
+                    }
                     _ => {
                         return Err(anyhow::anyhow!(
                             "Unknown mnemonic: {} at line {}",
@@ -513,7 +539,7 @@ impl<R: Read> Parser<R> {
                 Token::Label(label) => key_label = Some(label),
                 _ => {
                     if key_label.is_none() {
-                        key_label = Some("<ROOT>".to_string());
+                        key_label = Some(LABEL_ROOT.to_string());
                     }
 
                     let infos = self
@@ -525,12 +551,61 @@ impl<R: Read> Parser<R> {
             }
         }
 
-        let mut labeled_insts = HashMap::new();
+        let mut virt_insts = Vec::new();
+        let mut label_pos = HashMap::new();
+        let mut inst_count = 0;
+
+        println!("Virtual instructions:");
+        let token_infos = self.token_map.get(LABEL_ROOT).ok_or(anyhow::anyhow!(
+            "At least one unlabeled instruction is required"
+        ))?;
+        let insts = self.parse_tokens(&mut token_infos.iter())?;
+        label_pos.insert(LABEL_ROOT.to_string(), (inst_count, insts.len()));
+        println!("\t{}({}):\n\t\t{:?}", LABEL_ROOT, inst_count, insts);
+        inst_count += insts.len();
+        virt_insts.extend(insts);
+
         for (label, token_infos) in &self.token_map {
+            if label == LABEL_ROOT {
+                continue;
+            }
+
             let insts = self.parse_tokens(&mut token_infos.iter())?;
-            labeled_insts.insert(label.clone(), insts);
+            label_pos.insert(label.clone(), (inst_count, insts.len()));
+            println!("\t{}({}):\n\t\t{:?}", label, inst_count, insts);
+            inst_count += insts.len();
+            virt_insts.extend(insts);
         }
 
-        Ok(labeled_insts.get("<ROOT>").unwrap().to_vec())
+        // TODO
+        let mut real_insts = Vec::new();
+        let mut last_pos_len = None;
+        for (label, (pos, len)) in &mut label_pos {
+            if let Some(last_pos_len) = last_pos_len {
+                *pos = last_pos_len;
+            }
+
+            let mut i = *pos;
+            while i < *pos + *len {
+                match &virt_insts[i] {
+                    Instruction::J(target_label) => {
+                        let &(target_pos, _) = label_pos
+                            .get(target_label)
+                            .ok_or(anyhow::anyhow!("Unknown label: {}", target_label))?;
+                        let offset = target_pos as isize - i as isize;
+                        println!("offset: {}", offset);
+
+                        todo!()
+                    }
+                    inst => {
+                        real_insts.push(inst.clone());
+                        i += 1;
+                    }
+                }
+            }
+        }
+
+        println!("Real instructions:\n{:?}", real_insts);
+        Ok(real_insts)
     }
 }
