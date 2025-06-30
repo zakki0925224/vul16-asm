@@ -83,6 +83,10 @@ impl FormatJ {
             return Err(anyhow::anyhow!("rd must be between 0 and 7"));
         }
 
+        if offset > 127 || offset < -128 {
+            return Err(anyhow::anyhow!("offset must be between -128 and 127"));
+        }
+
         let mut format = Self(0);
         format.set_opcode(opcode);
         format.set_rd(rd);

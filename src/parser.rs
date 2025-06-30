@@ -577,35 +577,33 @@ impl<R: Read> Parser<R> {
             virt_insts.extend(insts);
         }
 
-        // TODO
         let mut real_insts = Vec::new();
-        let mut last_pos_len = None;
-        for (label, (pos, len)) in &mut label_pos {
-            if let Some(last_pos_len) = last_pos_len {
-                *pos = last_pos_len;
-            }
+        for (i, inst) in virt_insts.iter().enumerate() {
+            match inst {
+                Instruction::J(target_label) => {
+                    let &(target_pos, _) = label_pos
+                        .get(target_label)
+                        .ok_or(anyhow::anyhow!("Unknown label: {}", target_label))?;
+                    let offset = (target_pos as isize - i as isize) * 2;
+                    // println!("offset: {}", offset);
 
-            let mut i = *pos;
-            while i < *pos + *len {
-                match &virt_insts[i] {
-                    Instruction::J(target_label) => {
-                        let &(target_pos, _) = label_pos
-                            .get(target_label)
-                            .ok_or(anyhow::anyhow!("Unknown label: {}", target_label))?;
-                        let offset = target_pos as isize - i as isize;
-                        println!("offset: {}", offset);
+                    let format_j = FormatJ::new(isa::OPCODE_JMP, 0, offset).map_err(|_| {
+                        anyhow::anyhow!(
+                            "Offset out of range for label {}: {}",
+                            target_label,
+                            offset
+                        )
+                    })?;
+                    let inst = Instruction::Jmp(format_j);
 
-                        todo!()
-                    }
-                    inst => {
-                        real_insts.push(inst.clone());
-                        i += 1;
-                    }
+                    real_insts.push(inst);
+                }
+                inst => {
+                    real_insts.push(inst.clone());
                 }
             }
         }
 
-        println!("Real instructions:\n{:?}", real_insts);
         Ok(real_insts)
     }
 }
