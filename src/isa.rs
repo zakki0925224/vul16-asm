@@ -152,9 +152,9 @@ pub enum Instruction {
     Sltiu(FormatI),
     Lb(FormatI),
     Lbu(FormatI),
-    Lh(FormatI),
+    Lw(FormatI),
     Sb(FormatI),
-    Sh(FormatI),
+    Sw(FormatI),
     Jmp(FormatJ),
     Jmpr(FormatI),
     Beq(FormatB),
@@ -192,9 +192,9 @@ impl Instruction {
             Instruction::Sltiu(format_i) => format_i.0.to_le_bytes().to_vec(),
             Instruction::Lb(format_i) => format_i.0.to_le_bytes().to_vec(),
             Instruction::Lbu(format_i) => format_i.0.to_le_bytes().to_vec(),
-            Instruction::Lh(format_i) => format_i.0.to_le_bytes().to_vec(),
+            Instruction::Lw(format_i) => format_i.0.to_le_bytes().to_vec(),
             Instruction::Sb(format_i) => format_i.0.to_le_bytes().to_vec(),
-            Instruction::Sh(format_i) => format_i.0.to_le_bytes().to_vec(),
+            Instruction::Sw(format_i) => format_i.0.to_le_bytes().to_vec(),
             Instruction::Jmp(format_j) => format_j.0.to_le_bytes().to_vec(),
             Instruction::Jmpr(format_i) => format_i.0.to_le_bytes().to_vec(),
             Instruction::Beq(format_b) => format_b.0.to_le_bytes().to_vec(),
@@ -229,9 +229,9 @@ pub const OPCODE_SLTU: u8 = 0x11;
 pub const OPCODE_SLTIU: u8 = 0x12;
 pub const OPCODE_LB: u8 = 0x13;
 pub const OPCODE_LBU: u8 = 0x14;
-pub const OPCODE_LH: u8 = 0x15;
+pub const OPCODE_LW: u8 = 0x15;
 pub const OPCODE_SB: u8 = 0x16;
-pub const OPCODE_SH: u8 = 0x17;
+pub const OPCODE_SW: u8 = 0x17;
 pub const OPCODE_JMP: u8 = 0x18;
 pub const OPCODE_JMPR: u8 = 0x19;
 pub const OPCODE_BEQ: u8 = 0x1a;
@@ -262,9 +262,9 @@ pub const MNEMONIC_SLTU: &str = "sltu";
 pub const MNEMONIC_SLTIU: &str = "sltiu";
 pub const MNEMONIC_LB: &str = "lb";
 pub const MNEMONIC_LBU: &str = "lbu";
-pub const MNEMONIC_LH: &str = "lh";
+pub const MNEMONIC_LW: &str = "lw";
 pub const MNEMONIC_SB: &str = "sb";
-pub const MNEMONIC_SH: &str = "sh";
+pub const MNEMONIC_SW: &str = "sw";
 pub const MNEMONIC_JMP: &str = "jmp";
 pub const MNEMONIC_JMPR: &str = "jmpr";
 pub const MNEMONIC_BEQ: &str = "beq";
@@ -299,9 +299,9 @@ const RESERVED_WORDS: &[&str] = &[
     MNEMONIC_SLTIU,
     MNEMONIC_LB,
     MNEMONIC_LBU,
-    MNEMONIC_LH,
+    MNEMONIC_LW,
     MNEMONIC_SB,
-    MNEMONIC_SH,
+    MNEMONIC_SW,
     MNEMONIC_JMP,
     MNEMONIC_JMPR,
     MNEMONIC_BEQ,

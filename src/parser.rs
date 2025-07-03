@@ -144,9 +144,9 @@ impl<R: Read> Parser<R> {
             isa::OPCODE_SLTIU => Ok(Instruction::Sltiu(format_i)),
             isa::OPCODE_LB => Ok(Instruction::Lb(format_i)),
             isa::OPCODE_LBU => Ok(Instruction::Lbu(format_i)),
-            isa::OPCODE_LH => Ok(Instruction::Lh(format_i)),
+            isa::OPCODE_LW => Ok(Instruction::Lw(format_i)),
             isa::OPCODE_SB => Ok(Instruction::Sb(format_i)),
-            isa::OPCODE_SH => Ok(Instruction::Sh(format_i)),
+            isa::OPCODE_SW => Ok(Instruction::Sw(format_i)),
             isa::OPCODE_JMPR => Ok(Instruction::Jmpr(format_i)),
             _ => Err(anyhow::anyhow!(
                 "Expected FormatI instruction's opcode, but found 0x{:x} at line {}",
@@ -389,8 +389,8 @@ impl<R: Read> Parser<R> {
                             info.line,
                         )?));
                     }
-                    isa::MNEMONIC_LH => {
-                        let opcode = isa::OPCODE_LH;
+                    isa::MNEMONIC_LW => {
+                        let opcode = isa::OPCODE_LW;
                         return Ok(Some(self.format_i_inst(
                             token_infos_iter,
                             opcode,
@@ -405,8 +405,8 @@ impl<R: Read> Parser<R> {
                             info.line,
                         )?));
                     }
-                    isa::MNEMONIC_SH => {
-                        let opcode = isa::OPCODE_SH;
+                    isa::MNEMONIC_SW => {
+                        let opcode = isa::OPCODE_SW;
                         return Ok(Some(self.format_i_inst(
                             token_infos_iter,
                             opcode,
