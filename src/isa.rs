@@ -222,6 +222,8 @@ pub enum Instruction {
 
 impl std::fmt::Debug for Instruction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        const BOLD_RED: &str = "\x1b[1;31m";
+        const RESET: &str = "\x1b[0m";
         match self {
             Instruction::Add(format_r) => write!(f, "{:<5} {:?}", MNEMONIC_ADD, format_r),
             Instruction::Addi(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_ADDI, format_i),
@@ -255,9 +257,11 @@ impl std::fmt::Debug for Instruction {
             Instruction::Bge(format_b) => write!(f, "{:<5} {:?}", MNEMONIC_BGE, format_b),
             Instruction::Bltu(format_b) => write!(f, "{:<5} {:?}", MNEMONIC_BLTU, format_b),
             Instruction::Bgeu(format_b) => write!(f, "{:<5} {:?}", MNEMONIC_BGEU, format_b),
-            Instruction::J(target) => write!(f, "{:<5} #{}", MNEMONIC_VIRT_J, target),
-            Instruction::Ret => write!(f, "{:<5}", MNEMONIC_VIRT_RET),
-            Instruction::Nop => write!(f, "{:<5}", MNEMONIC_VIRT_NOP),
+            Instruction::J(target) => {
+                write!(f, "{}{:<5} #{}{}", BOLD_RED, MNEMONIC_VIRT_J, target, RESET)
+            }
+            Instruction::Ret => write!(f, "{}{:<5}{}", BOLD_RED, MNEMONIC_VIRT_RET, RESET),
+            Instruction::Nop => write!(f, "{}{:<5}{}", BOLD_RED, MNEMONIC_VIRT_NOP, RESET),
         }
     }
 }
