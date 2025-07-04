@@ -561,13 +561,14 @@ impl<R: Read> Parser<R> {
         let mut label_pos = HashMap::new();
         let mut inst_count = 0;
 
-        println!("Virtual instructions:");
+        println!("\nParsed:");
         let token_infos = self.token_map.get(LABEL_ROOT).ok_or(anyhow::anyhow!(
             "At least one unlabeled instruction is required"
         ))?;
         let insts = self.parse_tokens(&mut token_infos.iter())?;
         label_pos.insert(LABEL_ROOT.to_string(), (inst_count, insts.len()));
-        println!("\t{}({}):\n\t\t{:?}", LABEL_ROOT, inst_count, insts);
+        println!("{}({}):", LABEL_ROOT, inst_count);
+        debug_insts(&insts, 0);
         inst_count += insts.len();
         virt_insts.extend(insts);
 
@@ -578,7 +579,8 @@ impl<R: Read> Parser<R> {
 
             let insts = self.parse_tokens(&mut token_infos.iter())?;
             label_pos.insert(label.clone(), (inst_count, insts.len()));
-            println!("\t{}({}):\n\t\t{:?}", label, inst_count, insts);
+            println!("{}({}):", label, inst_count);
+            debug_insts(&insts, inst_count);
             inst_count += insts.len();
             virt_insts.extend(insts);
         }
@@ -619,6 +621,15 @@ impl<R: Read> Parser<R> {
             }
         }
 
+        println!("\nOutput:");
+        debug_insts(&real_insts, 0);
+
         Ok(real_insts)
+    }
+}
+
+fn debug_insts(insts: &[Instruction], offset: usize) {
+    for (i, inst) in insts.iter().enumerate() {
+        println!("0x{:04x}: {:?}", (offset + i) * 2, inst);
     }
 }

@@ -30,7 +30,6 @@ fn main() -> anyhow::Result<()> {
 
     let mut parser = Parser::load(input);
     let insts = parser.parse()?;
-    println!("parsed: {:?}", insts);
 
     let mut output: Box<dyn Write> = if let Some(output_file) = args.output_file {
         println!("Output to file: {}", output_file);

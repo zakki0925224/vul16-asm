@@ -1,7 +1,7 @@
 use bitfield::bitfield;
 
 bitfield! {
-    #[derive(Debug, Clone)]
+    #[derive(Clone)]
     pub struct FormatR(u16);
 
     u8, reserved, set_reserved: 1, 0;
@@ -9,6 +9,18 @@ bitfield! {
     u8, rs1, set_rs1: 7, 5;
     u8, rd, set_rd: 10, 8;
     u8, opcode, set_opcode: 15, 11;
+}
+
+impl std::fmt::Debug for FormatR {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "rd=r{:<2}, rs1=r{:<2}, rs2=r{:<2}",
+            self.rd(),
+            self.rs1(),
+            self.rs2()
+        )
+    }
 }
 
 impl FormatR {
@@ -36,13 +48,26 @@ impl FormatR {
 }
 
 bitfield! {
-    #[derive(Debug, Clone)]
+    #[derive(Clone)]
     pub struct FormatI(u16);
 
     u8, imm, set_imm: 4, 0;
     u8, rs, set_rs: 7, 5;
     u8, rd, set_rd: 10, 8;
     u8, opcode, set_opcode: 15, 11;
+}
+
+impl std::fmt::Debug for FormatI {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "rd=r{:<2}, rs=r{:<2}, imm={:#04x} ({:>3})",
+            self.rd(),
+            self.rs(),
+            (self.imm() as i8),
+            self.imm() as i8
+        )
+    }
 }
 
 impl FormatI {
@@ -69,12 +94,24 @@ impl FormatI {
 }
 
 bitfield! {
-    #[derive(Debug, Clone)]
+    #[derive(Clone)]
     pub struct FormatJ(u16);
 
     u8, offset, set_offset: 7, 0;
     u8, rd, set_rd: 10, 8;
     u8, opcode, set_opcode: 15, 11;
+}
+
+impl std::fmt::Debug for FormatJ {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "rd=r{:<2}, offset={:#04x} ({:>4})",
+            self.rd(),
+            (self.offset() as i8),
+            self.offset() as i8
+        )
+    }
 }
 
 impl FormatJ {
@@ -96,13 +133,26 @@ impl FormatJ {
 }
 
 bitfield! {
-    #[derive(Debug, Clone)]
+    #[derive(Clone)]
     pub struct FormatB(u16);
 
     u8, offset, set_offset: 4, 0;
     u8, rs2, set_rs2: 7, 5;
     u8, rs1, set_rs1: 10, 8;
     u8, opcode, set_opcode: 15, 11;
+}
+
+impl std::fmt::Debug for FormatB {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "rs1=r{:<2}, rs2=r{:<2}, offset={:#04x} ({:>3})",
+            self.rs1(),
+            self.rs2(),
+            (self.offset() as i8),
+            self.offset() as i8
+        )
+    }
 }
 
 impl FormatB {
@@ -128,7 +178,7 @@ impl FormatB {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 #[repr(u8)]
 pub enum Instruction {
     Add(FormatR),
@@ -168,6 +218,48 @@ pub enum Instruction {
     J(String), // target label
     Ret,
     Nop,
+}
+
+impl std::fmt::Debug for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Instruction::Add(format_r) => write!(f, "{:<5} {:?}", MNEMONIC_ADD, format_r),
+            Instruction::Addi(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_ADDI, format_i),
+            Instruction::Sub(format_r) => write!(f, "{:<5} {:?}", MNEMONIC_SUB, format_r),
+            Instruction::And(format_r) => write!(f, "{:<5} {:?}", MNEMONIC_AND, format_r),
+            Instruction::Andi(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_ANDI, format_i),
+            Instruction::Or(format_r) => write!(f, "{:<5} {:?}", MNEMONIC_OR, format_r),
+            Instruction::Ori(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_ORI, format_i),
+            Instruction::Xor(format_r) => write!(f, "{:<5} {:?}", MNEMONIC_XOR, format_r),
+            Instruction::Xori(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_XORI, format_i),
+            Instruction::Sll(format_r) => write!(f, "{:<5} {:?}", MNEMONIC_SLL, format_r),
+            Instruction::Slli(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_SLLI, format_i),
+            Instruction::Srl(format_r) => write!(f, "{:<5} {:?}", MNEMONIC_SRL, format_r),
+            Instruction::Srli(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_SRLI, format_i),
+            Instruction::Sra(format_r) => write!(f, "{:<5} {:?}", MNEMONIC_SRA, format_r),
+            Instruction::Srai(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_SRAI, format_i),
+            Instruction::Slt(format_r) => write!(f, "{:<5} {:?}", MNEMONIC_SLT, format_r),
+            Instruction::Slti(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_SLTI, format_i),
+            Instruction::Sltu(format_r) => write!(f, "{:<5} {:?}", MNEMONIC_SLTU, format_r),
+            Instruction::Sltiu(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_SLTIU, format_i),
+            Instruction::Lb(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_LB, format_i),
+            Instruction::Lbu(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_LBU, format_i),
+            Instruction::Lw(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_LW, format_i),
+            Instruction::Sb(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_SB, format_i),
+            Instruction::Sw(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_SW, format_i),
+            Instruction::Jmp(format_j) => write!(f, "{:<5} {:?}", MNEMONIC_JMP, format_j),
+            Instruction::Jmpr(format_i) => write!(f, "{:<5} {:?}", MNEMONIC_JMPR, format_i),
+            Instruction::Beq(format_b) => write!(f, "{:<5} {:?}", MNEMONIC_BEQ, format_b),
+            Instruction::Bne(format_b) => write!(f, "{:<5} {:?}", MNEMONIC_BNE, format_b),
+            Instruction::Blt(format_b) => write!(f, "{:<5} {:?}", MNEMONIC_BLT, format_b),
+            Instruction::Bge(format_b) => write!(f, "{:<5} {:?}", MNEMONIC_BGE, format_b),
+            Instruction::Bltu(format_b) => write!(f, "{:<5} {:?}", MNEMONIC_BLTU, format_b),
+            Instruction::Bgeu(format_b) => write!(f, "{:<5} {:?}", MNEMONIC_BGEU, format_b),
+            Instruction::J(target) => write!(f, "{:<5} #{}", MNEMONIC_VIRT_J, target),
+            Instruction::Ret => write!(f, "{:<5}", MNEMONIC_VIRT_RET),
+            Instruction::Nop => write!(f, "{:<5}", MNEMONIC_VIRT_NOP),
+        }
+    }
 }
 
 impl Instruction {
