@@ -481,6 +481,12 @@ impl<R: Read> Parser<R> {
                         let target_label = self.parse_target_label(token_infos_iter)?;
                         return Ok(Some(Instruction::J(target_label)));
                     }
+                    isa::MNEMONIC_VIRT_RET => {
+                        return Ok(Some(Instruction::Ret));
+                    }
+                    isa::MNEMONIC_VIRT_NOP => {
+                        return Ok(Some(Instruction::Nop));
+                    }
                     _ => {
                         return Err(anyhow::anyhow!(
                             "Unknown mnemonic: {} at line {}",
@@ -587,7 +593,7 @@ impl<R: Read> Parser<R> {
                     let offset = (target_pos as isize - i as isize) * 2;
                     // println!("offset: {}", offset);
 
-                    let format_j = FormatJ::new(isa::OPCODE_JMP, 0, offset).map_err(|_| {
+                    let format_j = FormatJ::new(isa::OPCODE_JMP, 1, offset).map_err(|_| {
                         anyhow::anyhow!(
                             "Offset out of range for label {}: {}",
                             target_label,
@@ -595,7 +601,16 @@ impl<R: Read> Parser<R> {
                         )
                     })?;
                     let inst = Instruction::Jmp(format_j);
-
+                    real_insts.push(inst);
+                }
+                Instruction::Ret => {
+                    let format_i = FormatI::new(isa::OPCODE_JMPR, 0, 1, 0)?;
+                    let inst = Instruction::Jmpr(format_i);
+                    real_insts.push(inst);
+                }
+                Instruction::Nop => {
+                    let format_r = FormatR::new(isa::OPCODE_ADD, 0, 0, 0)?;
+                    let inst = Instruction::Add(format_r);
                     real_insts.push(inst);
                 }
                 inst => {
